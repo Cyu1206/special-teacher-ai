@@ -1,89 +1,82 @@
 import express from "express";
 import fetch from "node-fetch";
-import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-
 dotenv.config();
-
-// 取得目前路徑
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 
-// 🔥 讓 Render 可以讀取 public 裡的 index.html、CSS、JS
-app.use(express.static(path.join(__dirname, "public")));
+// 提供 public 底下的 index.html
+app.use(express.static("public"));
 
-// 🔥 讓「首頁 / 」正確回傳你的 index.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-
-// ==============================
-// 🔥 AI API：處理 /chat
-// ==============================
+/*
+  AI 產生建議（前端呼叫 /chat）
+*/
 app.post("/chat", async (req, res) => {
   try {
-    const abilityText = req.body.ability;
+    const inputText = req.body.message;
+    console.log("收到訊息：", inputText);
 
-    if (!abilityText) {
-      return res.status(400).json({ error: "缺少 ability 內容" });
+    if (!inputText || inputText.trim() === "") {
+      return res.status(400).json({ error: "請提供能力描述文字" });
     }
+
+    const prompt = `
+你是一位專業特教老師。根據以下學生能力現況，請依照以下 JSON 結構產生建議：
+
+{
+  "parent": {
+    "gross": [],
+    "fine": [],
+    "cognition": [],
+    "language": [],
+    "social": [],
+    "daily": []
+  },
+  "teacher": {
+    "gross": [],
+    "fine": [],
+    "cognition": [],
+    "language": [],
+    "social": [],
+    "daily": []
+  }
+}
+
+請務必產生完整 JSON，不要有説明文字。
+學生能力現況：${inputText}
+    `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content:
-              "你是一位專業特教老師，請根據輸入的能力現況，產生家長與普班老師在六大面向（粗大、精細、認知、語言、社會情緒、生活自理）的建議，輸出成 JSON 格式。"
-          },
-          {
-            role: "user",
-            content: abilityText,
-          },
-        ],
-      }),
+          { role: "system", content: "你是特教老師 DAN。" },
+          { role: "user", content: prompt }
+        ]
+      })
     });
 
     const data = await response.json();
+    console.log("AI 回應：", data);
 
-    if (!data?.choices || !data.choices[0]?.message?.content) {
-      return res.status(500).json({ error: "AI 回傳格式錯誤", data });
-    }
+    const reply = data.choices?.[0]?.message?.content || "{}";
 
-    // 🔥 AI 回覆是文字，需要轉成 JSON
-    let aiJson;
-    try {
-      aiJson = JSON.parse(data.choices[0].message.content);
-    } catch (err) {
-      return res.status(500).json({
-        error: "AI 回傳內容無法解析成 JSON",
-        raw: data.choices[0].message.content,
-      });
-    }
+    // 回傳給前端
+    res.json({ reply });
 
-    res.json(aiJson);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server Error", detail: error.message });
+  } catch (err) {
+    console.error("AI 產生錯誤：", err);
+    res.status(500).json({ error: "Server internal error" });
   }
 });
 
-
-// ==============================
-// 🔥 Render 用這行啟動
-// ==============================
+// Render 啟動用
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
