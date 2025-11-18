@@ -1,69 +1,283 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>Special Teacher AI</title>
-
+  <meta charset="UTF-8" />
+  <title>特教老師教學建議整理工具 (AI 版)</title>
   <style>
     body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      padding: 40px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
     }
-
-    h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
+    header {
+      background-color: #4a90e2;
+      color: white;
+      padding: 16px 24px;
     }
-
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    header p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    main {
+      padding: 16px 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .section h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-left: 4px solid #4a90e2;
+      padding-left: 8px;
+    }
     textarea {
       width: 100%;
-      height: 120px;
-      font-size: 18px;
-      padding: 10px;
+      min-height: 100px;
+      resize: vertical;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
     }
-
+    label {
+      font-size: 14px;
+    }
+    .flex {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .flex-2 {
+      flex: 2 1 320px;
+    }
+    .flex-1 {
+      flex: 1 1 260px;
+    }
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 8px 0 10px;
+      align-items: center;
+    }
+    select,
     button {
-      margin-top: 10px;
-      font-size: 20px;
-      padding: 10px 20px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      background: white;
+    }
+    button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
       cursor: pointer;
     }
-
-    #reply {
-      margin-top: 30px;
-      padding: 20px;
+    button:hover {
+      background-color: #3a79c0;
+    }
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .role-column {
       background: #fafafa;
-      border-left: 5px solid #4CAF50;
-      font-size: 20px;
-      min-height: 50px;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+    }
+    .role-column h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .domain-block {
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      background: white;
+      border: 1px solid #e3e3e3;
+    }
+    .domain-block h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+    .domain-block ul {
+      list-style: disc;
+      padding-left: 20px;
+      margin: 4px 0 0;
+      font-size: 13px;
+    }
+    .hint {
+      font-size: 12px;
+      color: #777;
     }
   </style>
 </head>
-
 <body>
+  <header>
+    <h1>特教老師教學建議整理工具 (AI 版)</h1>
+    <p>輸入孩子能力現況，可手動新增建議，也可以用 AI 自動產生建議。</p>
+  </header>
 
-<h1>Special Teacher AI Demo</h1>
+  <main>
+    <!-- 能力現況 + AI -->
+    <section class="section">
+      <h2>一、孩子能力現況</h2>
+      <textarea id="abilityInput" placeholder="請輸入孩子的能力現況……"></textarea>
+      <div style="margin-top: 10px;">
+        <button id="aiButton">用 AI 產生建議</button>
+        <span id="aiStatus" style="font-size:12px;color:#666;margin-left:10px;"></span>
+      </div>
+    </section>
 
-<textarea id="msg" placeholder="輸入訊息..."></textarea><br>
-<button onclick="sendMsg()">送出</button>
+    <!-- 手動新增 -->
+    <section class="section">
+      <h2>二、輸入教學／教養建議（手動）</h2>
+      <div class="flex">
+        <div class="flex-2">
+          <label>建議內容：</label>
+          <textarea id="suggestionText"></textarea>
+        </div>
+        <div class="flex-1">
+          <label>建議對象：</label>
+          <select id="suggestionAudience">
+            <option value="parent">家長</option>
+            <option value="teacher">普班老師</option>
+          </select>
 
-<h2>AI 回覆：</h2>
-<div id="reply"></div>
+          <label>面向：</label>
+          <select id="suggestionDomain">
+            <option value="gross">粗大動作</option>
+            <option value="fine">精細動作</option>
+            <option value="cognition">認知</option>
+            <option value="language">語言</option>
+            <option value="social">社會情緒</option>
+            <option value="daily">生活自理</option>
+          </select>
 
-<script>
-  async function sendMsg() {
-    const message = document.getElementById("msg").value;
+          <button id="addSuggestionBtn" style="margin-top:10px;">加入建議</button>
+        </div>
+      </div>
+    </section>
 
-    const response = await fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message })
-    });
+    <!-- 彙整 -->
+    <section class="section">
+      <h2>三、建議彙整（依對象與六大面向）</h2>
 
-    const data = await response.json();
-    document.getElementById("reply").innerText = data.reply;
-  }
-</script>
+      <div class="columns">
+        <div class="role-column">
+          <h3>給家長的建議</h3>
+          <div class="domain-block"><h4>粗大動作</h4><ul id="parent-gross"></ul></div>
+          <div class="domain-block"><h4>精細動作</h4><ul id="parent-fine"></ul></div>
+          <div class="domain-block"><h4>認知</h4><ul id="parent-cognition"></ul></div>
+          <div class="domain-block"><h4>語言</h4><ul id="parent-language"></ul></div>
+          <div class="domain-block"><h4>社會情緒</h4><ul id="parent-social"></ul></div>
+          <div class="domain-block"><h4>生活自理</h4><ul id="parent-daily"></ul></div>
+        </div>
 
+        <div class="role-column">
+          <h3>給普班老師的建議</h3>
+          <div class="domain-block"><h4>粗大動作</h4><ul id="teacher-gross"></ul></div>
+          <div class="domain-block"><h4>精細動作</h4><ul id="teacher-fine"></ul></div>
+          <div class="domain-block"><h4>認知</h4><ul id="teacher-cognition"></ul></div>
+          <div class="domain-block"><h4>語言</h4><ul id="teacher-language"></ul></div>
+          <div class="domain-block"><h4>社會情緒</h4><ul id="teacher-social"></ul></div>
+          <div class="domain-block"><h4>生活自理</h4><ul id="teacher-daily"></ul></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 手動新增
+    document.getElementById("addSuggestionBtn").onclick = () => {
+      const text = suggestionText.value.trim();
+      if (!text) return alert("請輸入建議內容");
+
+      const audience = suggestionAudience.value;
+      const domain = suggestionDomain.value;
+      const ul = document.getElementById(`${audience}-${domain}`);
+
+      const li = document.createElement("li");
+      li.textContent = text;
+      ul.appendChild(li);
+
+      suggestionText.value = "";
+    };
+
+    // 清空所有欄位
+    function clearAll() {
+      const ids = [
+        "parent-gross","parent-fine","parent-cognition","parent-language","parent-social","parent-daily",
+        "teacher-gross","teacher-fine","teacher-cognition","teacher-language","teacher-social","teacher-daily"
+      ];
+      ids.forEach(id => document.getElementById(id).innerHTML = "");
+    }
+
+    // 填入 AI 回覆
+    function fillAI(data) {
+      clearAll();
+
+      Object.entries(data.parent).forEach(([key, arr]) => {
+        const ul = document.getElementById(`parent-${key}`);
+        arr.forEach(v => {
+          const li = document.createElement("li");
+          li.textContent = v;
+          ul.appendChild(li);
+        });
+      });
+
+      Object.entries(data.teacher).forEach(([key, arr]) => {
+        const ul = document.getElementById(`teacher-${key}`);
+        arr.forEach(v => {
+          const li = document.createElement("li");
+          li.textContent = v;
+          ul.appendChild(li);
+        });
+      });
+    }
+
+    // AI 產生建議
+    document.getElementById("aiButton").onclick = async () => {
+      const text = abilityInput.value.trim();
+      if (!text) return alert("請先輸入能力現況！");
+
+      aiStatus.textContent = "AI 生成中……";
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await response.json();
+        aiStatus.textContent = "完成 ✓";
+
+        fillAI(JSON.parse(data.reply));
+      } catch (e) {
+        aiStatus.textContent = "錯誤，請稍後再試";
+      }
+    };
+  </script>
 </body>
 </html>
