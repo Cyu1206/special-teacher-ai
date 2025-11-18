@@ -1,22 +1,26 @@
 import express from "express";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
+
 dotenv.config();
 
-// 必要：取得真實路徑（Render 才找得到 public/index.html）
+// 取得 __dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.resolve();
+const __dirname = path.dirname(__filename);
 
-// 建立 express
 const app = express();
 app.use(express.json());
 
-// ⭐ 讓 Render / browser 可以拿到前端頁面 public/index.html
+// ⭐ 靜態檔案處理（讓 / 自動讀 public/index.html）
 app.use(express.static(path.join(__dirname, "public")));
 
-// API：聊天
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ⭐ API：聊天功能
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
@@ -45,7 +49,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ⭐ Render 指定 Port
+// ⭐ Render 啟動 port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
