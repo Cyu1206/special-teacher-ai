@@ -1,24 +1,38 @@
 import express from "express";
 import fetch from "node-fetch";
+import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
 dotenv.config();
 
+// 取得目前路徑
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
 
-// -----------------------------------------
-// AI 產生六大面向建議 API
-// -----------------------------------------
-app.post("/ai", async (req, res) => {
-  try {
-    const abilityText = req.body.text;
+// 🔥 讓 Render 可以讀取 public 裡的 index.html、CSS、JS
+app.use(express.static(path.join(__dirname, "public")));
 
-    if (!abilityText || abilityText.trim() === "") {
-      return res.status(400).json({ error: "缺少能力描述內容" });
+// 🔥 讓「首頁 / 」正確回傳你的 index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+
+// ==============================
+// 🔥 AI API：處理 /chat
+// ==============================
+app.post("/chat", async (req, res) => {
+  try {
+    const abilityText = req.body.ability;
+
+    if (!abilityText) {
+      return res.status(400).json({ error: "缺少 ability 內容" });
     }
 
-    // 向 OpenAI 送出請求
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -31,47 +45,45 @@ app.post("/ai", async (req, res) => {
           {
             role: "system",
             content:
-              "你是特教老師，請依照輸入的孩子能力現況，輸出六大面向的建議（粗大動作、精細動作、認知、語言、社會情緒、生活自理），" +
-              "並分成兩組：parent（給家長）、teacher（給普班老師）。" +
-              "請用 JSON 格式輸出，不要多餘敘述。例如：{" +
-              '"parent":{"gross":["建議1"],"fine":["建議2"],...}, "teacher":{...}}'
+              "你是一位專業特教老師，請根據輸入的能力現況，產生家長與普班老師在六大面向（粗大、精細、認知、語言、社會情緒、生活自理）的建議，輸出成 JSON 格式。"
           },
-          { role: "user", content: abilityText },
+          {
+            role: "user",
+            content: abilityText,
+          },
         ],
       }),
     });
 
     const data = await response.json();
 
-    // 檢查 AI 是否有回應
-    if (!data.choices || !data.choices[0]) {
-      return res.status(500).json({ error: "OpenAI 回應格式錯誤", raw: data });
+    if (!data?.choices || !data.choices[0]?.message?.content) {
+      return res.status(500).json({ error: "AI 回傳格式錯誤", data });
     }
 
-    let aiText = data.choices[0].message.content.trim();
-
-    // 嘗試把 AI 的文字解析成 JSON
-    let jsonResult;
-
+    // 🔥 AI 回覆是文字，需要轉成 JSON
+    let aiJson;
     try {
-      jsonResult = JSON.parse(aiText);
-    } catch (e) {
-      // AI 可能在外面包了「```json ... ```」
-      aiText = aiText.replace(/```json/g, "").replace(/```/g, "");
-      jsonResult = JSON.parse(aiText);
+      aiJson = JSON.parse(data.choices[0].message.content);
+    } catch (err) {
+      return res.status(500).json({
+        error: "AI 回傳內容無法解析成 JSON",
+        raw: data.choices[0].message.content,
+      });
     }
 
-    // 回傳給前端
-    res.json(jsonResult);
+    res.json(aiJson);
+
   } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({ error: "伺服器錯誤，AI 產生建議失敗", detail: error.message });
+    console.error(error);
+    res.status(500).json({ error: "Server Error", detail: error.message });
   }
 });
 
-// -----------------------------------------
-// Render 啟動設定
-// -----------------------------------------
+
+// ==============================
+// 🔥 Render 用這行啟動
+// ==============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
