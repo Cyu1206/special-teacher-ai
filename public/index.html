@@ -155,11 +155,6 @@
       font-size: 12px;
       color: #666;
     }
-    @media (max-width: 768px) {
-      main {
-        padding: 12px 12px 24px;
-      }
-    }
   </style>
 </head>
 <body>
@@ -169,7 +164,7 @@
   </header>
 
   <main>
-    <!-- 一、能力現況 + AI 產生 -->
+    <!-- 能力現況區塊 + AI 產生建議 -->
     <section class="section">
       <h2>一、孩子能力現況</h2>
       <p class="small-label">
@@ -183,12 +178,11 @@
       </div>
 
       <p class="hint">
-        按「用 AI 產生建議」後，系統會根據此段能力現況，自動產生六大向度下，
-        給「家長」與「普班老師」的建議，並填入下方欄位。
+        按「用 AI 產生建議」後，系統會根據此段能力現況，自動產生六大向度下，給「家長」與「普班老師」的建議，並填入下方欄位。
       </p>
     </section>
 
-    <!-- 二、手動新增建議 -->
+    <!-- 手動新增建議 -->
     <section class="section">
       <h2>二、輸入教學／教養建議（手動）</h2>
       <div class="flex">
@@ -223,66 +217,28 @@
       </div>
     </section>
 
-    <!-- 三、建議彙整 -->
+    <!-- 建議彙整 -->
     <section class="section">
       <h2>三、建議彙整（依對象與六大面向）</h2>
       <div class="columns">
-        <!-- 家長 -->
         <div class="role-column">
           <h3>給家長的建議</h3>
-          <div class="domain-block">
-            <h4>粗大動作</h4>
-            <ul id="parent-gross"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>精細動作</h4>
-            <ul id="parent-fine"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>認知</h4>
-            <ul id="parent-cognition"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>語言</h4>
-            <ul id="parent-language"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>社會情緒</h4>
-            <ul id="parent-social"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>生活自理</h4>
-            <ul id="parent-daily"></ul>
-          </div>
+          <div class="domain-block"><h4>粗大動作</h4><ul id="parent-gross"></ul></div>
+          <div class="domain-block"><h4>精細動作</h4><ul id="parent-fine"></ul></div>
+          <div class="domain-block"><h4>認知</h4><ul id="parent-cognition"></ul></div>
+          <div class="domain-block"><h4>語言</h4><ul id="parent-language"></ul></div>
+          <div class="domain-block"><h4>社會情緒</h4><ul id="parent-social"></ul></div>
+          <div class="domain-block"><h4>生活自理</h4><ul id="parent-daily"></ul></div>
         </div>
 
-        <!-- 普班老師 -->
         <div class="role-column">
           <h3>給普班老師的建議</h3>
-          <div class="domain-block">
-            <h4>粗大動作</h4>
-            <ul id="teacher-gross"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>精細動作</h4>
-            <ul id="teacher-fine"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>認知</h4>
-            <ul id="teacher-cognition"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>語言</h4>
-            <ul id="teacher-language"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>社會情緒</h4>
-            <ul id="teacher-social"></ul>
-          </div>
-          <div class="domain-block">
-            <h4>生活自理</h4>
-            <ul id="teacher-daily"></ul>
-          </div>
+          <div class="domain-block"><h4>粗大動作</h4><ul id="teacher-gross"></ul></div>
+          <div class="domain-block"><h4>精細動作</h4><ul id="teacher-fine"></ul></div>
+          <div class="domain-block"><h4>認知</h4><ul id="teacher-cognition"></ul></div>
+          <div class="domain-block"><h4>語言</h4><ul id="teacher-language"></ul></div>
+          <div class="domain-block"><h4>社會情緒</h4><ul id="teacher-social"></ul></div>
+          <div class="domain-block"><h4>生活自理</h4><ul id="teacher-daily"></ul></div>
         </div>
       </div>
     </section>
@@ -298,7 +254,6 @@
     const aiStatus = document.getElementById("aiStatus");
     const abilityInput = document.getElementById("abilityInput");
 
-    // 手動加入建議
     addSuggestionBtn.addEventListener("click", function () {
       const text = suggestionText.value.trim();
       if (!text) {
@@ -306,13 +261,12 @@
         return;
       }
 
-      const audience = suggestionAudience.value; // parent / teacher
-      const domain = suggestionDomain.value;     // gross / fine / ...
-
-      const listId = audience + "-" + domain;    // e.g. parent-gross
+      const audience = suggestionAudience.value;
+      const domain = suggestionDomain.value;
+      const listId = audience + "-" + domain;
       const list = document.getElementById(listId);
       if (!list) {
-        alert("找不到對應的訊息欄，請檢查設定。");
+        alert("找不到對應的欄位。");
         return;
       }
 
@@ -324,7 +278,6 @@
       suggestionText.focus();
     });
 
-    // 清空所有 AI 建議（重新產生前用）
     function clearAllSuggestions() {
       const ids = [
         "parent-gross","parent-fine","parent-cognition","parent-language","parent-social","parent-daily",
@@ -336,65 +289,13 @@
       });
     }
 
-    // 把 AI 回傳的 JSON 寫進畫面
     function fillSuggestionsFromAI(data) {
       clearAllSuggestions();
 
+      const parent = data.parent || {};
+      const teacher = data.teacher || {};
+
       function addListItems(prefix, obj) {
-        if (!obj) return;
         Object.entries(obj).forEach(([key, arr]) => {
           const ul = document.getElementById(prefix + "-" + key);
-          if (!ul || !Array.isArray(arr)) return;
-          arr.forEach(text => {
-            const li = document.createElement("li");
-            li.textContent = text;
-            ul.appendChild(li);
-          });
-        });
-      }
-
-      addListItems("parent", data.parent);
-      addListItems("teacher", data.teacher);
-    }
-
-    // 用 AI 產生建議：呼叫後端 /generate-suggestions
-    aiButton.addEventListener("click", async function () {
-      const text = abilityInput.value.trim();
-      if (!text) {
-        alert("請先貼上孩子的能力現況。");
-        return;
-      }
-
-      aiButton.disabled = true;
-      aiStatus.textContent = "AI 產生中，請稍候…";
-
-      try {
-        // 同一個網域下，直接寫相對路徑就好
-        const res = await fetch("/generate-suggestions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ abilityText: text })
-        });
-
-        if (!res.ok) {
-          const errText = await res.text();
-          console.error("後端錯誤：", errText);
-          throw new Error("後端回應錯誤：" + res.status);
-        }
-
-        const data = await res.json();
-        fillSuggestionsFromAI(data);
-        aiStatus.textContent = "AI 建議已更新完成 ✅";
-      } catch (err) {
-        console.error(err);
-        aiStatus.textContent = "產生建議時發生錯誤，請稍後再試。";
-        alert("產生建議失敗，請確認後端是否有啟動，或查看 Render log。");
-      } finally {
-        aiButton.disabled = false;
-      }
-    });
-  </script>
-</body>
-</html>
+          if (!ul || !
