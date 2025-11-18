@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>特教教學建議整理工具 + AI 版</title>
+  <title>特教老師教學建議整理工具 (AI 版)</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -169,7 +169,7 @@
   </header>
 
   <main>
-    <!-- 能力現況區塊 + AI 產生建議 -->
+    <!-- 一、能力現況 + AI 產生 -->
     <section class="section">
       <h2>一、孩子能力現況</h2>
       <p class="small-label">
@@ -177,7 +177,6 @@
       </p>
       <textarea id="abilityInput" placeholder="請在此輸入或貼上孩子的能力現況描述…"></textarea>
 
-      <!-- ⭐ AI 產生建議按鈕 -->
       <div class="ai-row">
         <button id="aiButton">用 AI 產生建議</button>
         <span id="aiStatus" class="ai-status"></span>
@@ -189,7 +188,7 @@
       </p>
     </section>
 
-    <!-- 手動新增建議區塊 -->
+    <!-- 二、手動新增建議 -->
     <section class="section">
       <h2>二、輸入教學／教養建議（手動）</h2>
       <div class="flex">
@@ -224,11 +223,11 @@
       </div>
     </section>
 
-    <!-- 顯示建議區塊 -->
+    <!-- 三、建議彙整 -->
     <section class="section">
       <h2>三、建議彙整（依對象與六大面向）</h2>
       <div class="columns">
-        <!-- 家長建議 -->
+        <!-- 家長 -->
         <div class="role-column">
           <h3>給家長的建議</h3>
           <div class="domain-block">
@@ -257,7 +256,7 @@
           </div>
         </div>
 
-        <!-- 普班老師建議 -->
+        <!-- 普班老師 -->
         <div class="role-column">
           <h3>給普班老師的建議</h3>
           <div class="domain-block">
@@ -308,9 +307,9 @@
       }
 
       const audience = suggestionAudience.value; // parent / teacher
-      const domain = suggestionDomain.value; // gross / fine / cognition / language / social / daily
+      const domain = suggestionDomain.value;     // gross / fine / ...
 
-      const listId = audience + "-" + domain; // e.g. parent-gross
+      const listId = audience + "-" + domain;    // e.g. parent-gross
       const list = document.getElementById(listId);
       if (!list) {
         alert("找不到對應的訊息欄，請檢查設定。");
@@ -325,7 +324,7 @@
       suggestionText.focus();
     });
 
-    // 清空所有建議（給 AI 填入前用）
+    // 清空所有 AI 建議（重新產生前用）
     function clearAllSuggestions() {
       const ids = [
         "parent-gross","parent-fine","parent-cognition","parent-language","parent-social","parent-daily",
@@ -337,7 +336,7 @@
       });
     }
 
-    // 將後端回傳的 JSON 寫入畫面
+    // 把 AI 回傳的 JSON 寫進畫面
     function fillSuggestionsFromAI(data) {
       clearAllSuggestions();
 
@@ -358,7 +357,7 @@
       addListItems("teacher", data.teacher);
     }
 
-    // ⭐ 用 AI 產生建議：呼叫後端 API
+    // 用 AI 產生建議：呼叫後端 /generate-suggestions
     aiButton.addEventListener("click", async function () {
       const text = abilityInput.value.trim();
       if (!text) {
@@ -370,7 +369,8 @@
       aiStatus.textContent = "AI 產生中，請稍候…";
 
       try {
-        const res = await fetch("http://localhost:3000/generate-suggestions", {
+        // 同一個網域下，直接寫相對路徑就好
+        const res = await fetch("/generate-suggestions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -379,6 +379,8 @@
         });
 
         if (!res.ok) {
+          const errText = await res.text();
+          console.error("後端錯誤：", errText);
           throw new Error("後端回應錯誤：" + res.status);
         }
 
@@ -388,7 +390,7 @@
       } catch (err) {
         console.error(err);
         aiStatus.textContent = "產生建議時發生錯誤，請稍後再試。";
-        alert("產生建議失敗，請確認後端是否有啟動，或 API 金鑰是否正確。");
+        alert("產生建議失敗，請確認後端是否有啟動，或查看 Render log。");
       } finally {
         aiButton.disabled = false;
       }
